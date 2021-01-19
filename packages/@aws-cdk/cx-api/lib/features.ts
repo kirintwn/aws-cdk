@@ -103,17 +103,17 @@ export const S3_GRANT_WRITE_WITHOUT_ACL = '@aws-cdk/aws-s3:grantWriteWithoutAcl'
  * Tests must cover the default (disabled) case and the future (enabled) case.
  */
 export const FUTURE_FLAGS = {
-  [ENABLE_STACK_NAME_DUPLICATES_CONTEXT]: 'true',
-  [ENABLE_DIFF_NO_FAIL_CONTEXT]: 'true',
-  [STACK_RELATIVE_EXPORTS_CONTEXT]: 'true',
-  [DOCKER_IGNORE_SUPPORT]: true,
-  [SECRETS_MANAGER_PARSE_OWNED_SECRET_NAME]: true,
-  [KMS_DEFAULT_KEY_POLICIES]: true,
-  [S3_GRANT_WRITE_WITHOUT_ACL]: true,
-
   // We will advertise this flag when the feature is complete
   // [NEW_STYLE_STACK_SYNTHESIS_CONTEXT]: 'true',
 };
+
+/**
+ * The list of future flags that are now expired. This is going to be used to identify
+ * and block usages of old feature flags in the new major version of CDK.
+ */
+export const FUTURE_FLAGS_EXPIRED: string[] = [
+  ENABLE_STACK_NAME_DUPLICATES_CONTEXT,
+];
 
 /**
  * The set of defaults that should be applied if the feature flag is not
