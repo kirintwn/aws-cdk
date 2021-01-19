@@ -1,9 +1,6 @@
-import * as path from 'path';
-import * as process from 'process';
 import * as cxapi from '@aws-cdk/cx-api';
+import { withFeatureFlag } from 'cdk-build-tools/lib/feature-flag';
 import { Construct } from 'constructs';
-import * as fs from 'fs-extra';
-import * as semver from 'semver';
 import {
   App, CfnCondition, CfnInclude, CfnOutput, CfnParameter,
   CfnResource, Lazy, ScopedAws, Stack, validateString, ISynthesisSession, Tags, LegacyStackSynthesizer, DefaultStackSynthesizer,
@@ -891,7 +888,7 @@ describe('stack', () => {
 
       withFeatureFlag(
         'stack.templateFile is the name of the template file emitted to the cloud assembly (default is to use the stack name)',
-        undefined, (app: App) => {
+        undefined, App, (app) => {
           // WHEN
           const stack1 = new Stack(app, 'MyStack1');
           const stack2 = new Stack(app, 'MyStack2', { stackName: 'MyRealStack2' });
@@ -902,7 +899,7 @@ describe('stack', () => {
 
         });
 
-      withFeatureFlag('artifactId and templateFile use the stack name', undefined, (app: App) => {
+      withFeatureFlag('artifactId and templateFile use the stack name', undefined, App, (app) => {
         // WHEN
         const stack1 = new Stack(app, 'MyStack1', { stackName: 'thestack' });
         const assembly = app.synth();
@@ -918,7 +915,8 @@ describe('stack', () => {
       withFeatureFlag(
         'allows using the same stack name for two stacks (i.e. in different regions)',
         { [cxapi.ENABLE_STACK_NAME_DUPLICATES_CONTEXT]: 'true' },
-        (app: App) => {
+        App,
+        (app) => {
           // WHEN
           const stack1 = new Stack(app, 'MyStack1', { stackName: 'thestack' });
           const stack2 = new Stack(app, 'MyStack2', { stackName: 'thestack' });
@@ -934,7 +932,8 @@ describe('stack', () => {
       withFeatureFlag(
         'artifactId and templateFile use the unique id and not the stack name',
         { [cxapi.ENABLE_STACK_NAME_DUPLICATES_CONTEXT]: 'true' },
-        (app: App) => {
+        App,
+        (app) => {
           // WHEN
           const stack1 = new Stack(app, 'MyStack1', { stackName: 'thestack' });
           const assembly = app.synth();
@@ -948,7 +947,8 @@ describe('stack', () => {
       withFeatureFlag(
         'when feature flag is enabled we will use the artifact id as the template name',
         { [cxapi.ENABLE_STACK_NAME_DUPLICATES_CONTEXT]: 'true' },
-        (app: App) => {
+        App,
+        (app) => {
           // WHEN
           const stack1 = new Stack(app, 'MyStack1');
           const stack2 = new Stack(app, 'MyStack2', { stackName: 'MyRealStack2' });
@@ -1113,36 +1113,4 @@ class StackWithPostProcessor extends Stack {
 
     return template;
   }
-}
-
-function withFeatureFlag(
-  name: string,
-  flags: {[key: string]: any} | undefined,
-  fn: (app: App) => void,
-  repoRoot: string = path.join(process.cwd(), '..', '..', '..')) {
-
-  const resolveVersionPath = path.join(repoRoot, 'scripts', 'resolve-version.js');
-  if (!fs.existsSync(resolveVersionPath)) {
-    throw new Error(`file not present at path ${resolveVersionPath}. You will likely need to set 'repoRoot'.`);
-  }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const ver = require(resolveVersionPath).version;
-  const sem = semver.parse(ver);
-  if (!sem) {
-    throw new Error(`version ${ver} is not a semver`);
-  }
-  if (sem.major === 2) {
-    if (flags === undefined || Object.keys(flags).length === 0) {
-      // If no feature flag is set, the test is asserting the old behaviour, i.e., feature flag disabled
-      // In CDKv2, this behaviour is not supported. Skip the test.
-      return;
-    } else {
-      // If feature flags are passed, the test is asserting the new behaviour, i.e., feature flag enabled
-      // In CDKv2, ignore the context as the default behaviour is as if the feature flag is enabled.
-      const app = new App();
-      return test(name, async () => fn(app));
-    }
-  }
-  const app = new App({ context: flags });
-  return test(name, () => fn(app));
 }
